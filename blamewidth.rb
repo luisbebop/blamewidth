@@ -89,7 +89,7 @@ class Blamewidth
   
   def retrieve_iptables_stats(ingress=true)
     direction = ingress ? 'in' : 'out'
-    iptables_output = session.exec!( "iptables -L traffic_#{direction} -vnx;date -u")
+    iptables_output = session.exec!( "iptables -L traffic_#{direction} -vnx;date -u +%c")
     parse_iptables_stats( iptables_output, ingress)
   end
 
