@@ -55,37 +55,51 @@ class Blamewidth
     @session = nil
     @configured = false
   end
-    
+      
   def setup(router_ip, username, password, ips)
     return if @configured
     @router_ip = router_ip
     @username = username
     @password = password
-    
-    # initial setup
-    setup_commands = [
-      "iptables -N traffic_in",
-      "iptables -N traffic_out",      
-      "iptables -I FORWARD 1 -j traffic_in",
-      "iptables -I FORWARD 2 -j traffic_out"
-      #"iptables -I FORWARD -i eth0 -j traffic_in",
-      #"iptables -I FORWARD -o eth0 -j traffic_out"
-    ]
-    setup_commands.each { |cmd| session.exec!(cmd) }
-    
-    # per-ip monitoring
-    ips.each do |ip|
-      # delete ip before put in the chain if already exists
-      session.exec!("iptables -D traffic_in -d #{ip}")
-      session.exec!("iptables -D traffic_out -s #{ip}")
-      # put ip in the chain
-      session.exec!("iptables -A traffic_in -d #{ip}")
-      session.exec!("iptables -A traffic_out -s #{ip}")
-    end
+        
+    create_setup_commands(ips).each { |cmd| session.exec!(cmd) }
     @configured = true
   end
-
+  
   #private
+  
+  def create_setup_commands(ips)
+    setup_comands = []
+    # setup rules to traffic_in
+    ["traffic_in", "traffic_out"].each do |chain|
+      # setup chains
+      unless chain_exist?(chain)
+        setup_comands << "iptables -N #{chain}"
+        setup_comands << "iptables -I FORWARD #{chain == "traffic_in" ? 1 : 2} -j #{chain}"
+      end
+      # setup ips to monitoring
+      check_ips_to_setup(ips,chain).each do |ip|
+        setup_comands << "iptables -A #{chain} -#{chain == "traffic_in" ? "d" : "s"} #{ip}"
+      end
+    end
+    setup_comands
+  end
+  
+  def chain_exist?(chain_name)
+    session.exec!("iptables -L #{chain_name}").include?(chain_name)
+  end
+
+  def check_ips_to_setup(ips_to_setup, chain_name)
+    ips_already_setup = []
+    # verifies only traffic_in chain
+    dump = session.exec!("iptables -L #{chain_name} -vnx")
+    dump.split(/\n/).each do |line|
+      line = line.split("\s")
+      index_ip = chain_name == "traffic_in" ? 7 : 6
+      ips_already_setup << line[index_ip] if line[index_ip] =~ /\d.\d.\d.\d/
+    end
+    ips_to_setup - ips_already_setup
+  end
   
   def retrieve_iptables_stats(ingress=true)
     direction = ingress ? 'in' : 'out'
@@ -105,5 +119,5 @@ class Blamewidth
     end
     [Time.parse(lines.last),traffic]
   end
-
+  
 end

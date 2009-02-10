@@ -9,9 +9,8 @@ Todo list:
 ===
 
 * We need get the original code, add support to ssh on top of it instead rewrite the module
-* Add rspec tests
+* Add rspec or test/unit tests
 * Package in a gem or plugin
-* Find a way to delete tables traffic_in and traffic_out from iptables. If you connect to a server with a previously traffic_in and traffic_out tables, you'll get wrong results on speed monitor.
 * Add connection exception treatment
 * Remove singleton pattern. I only use this for my rails application. 
 * Refactory the code ;)
@@ -28,7 +27,7 @@ b = Blamewidth.instance
 array_of_ips = (0..50).to_a.map{|i| "192.168.0.#{100 + i}"}
 or
 array_of_ips = ["192.168.0.5", "192.168.0.20", "192.168.0.230", "192.168.0.100", "192.168.0.101", "192.168.0.103", "192.168.0.130", "192.168.0.140", "192.168.0.150", "192.168.0.160", "192.168.0.170", "192.168.0.180"]
-b.setup('192.168.0.1', 'root', array_of_ips)
+b.setup('192.168.0.1', 'root', 'secretpassword', array_of_ips)
 
 # print list of hogs, sorted by biggest consumer first
 b.blame
